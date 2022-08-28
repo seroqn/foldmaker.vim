@@ -1,0 +1,106 @@
+*foldmaker.txt*	パターンとインデントを基にして|fold-expr|を生成する
+
+Author  : seroqn
+License : MIT license
+
+==============================================================================
+
+Vimの折り畳み機能|fold.txt|の、式による折り畳み|fold-expr|を、複雑な式や関数を
+用意する代わりに、ファイルタイプと正規表現パターンを指定するだけで簡単に生成す
+るようにします。正規表現パターンにマッチした行から折りたたみを開始して、折り畳
+みの終了はインデントによって判断します。
+
+該当するファイルタイプのファイルを開くと自動で 'foldmethod' が "expr" に、
+'foldexpr' が foldmaker の関数に設定されます。
+'foldmarker' のようなマーカーを使って、折り畳みにならないところに手動で折り畳
+みを作成できます。
+折り畳みのレベルを同じ行で一度に2つ以上深くすることはできません。
+インデントが崩れていたり、コーディングスタイルによっては用をなしません。
+今のところコメントを無視しません。
+
+------------------------------------------------------------------------------
+設定例						*foldmaker-setting*
+
+|g:foldmaker|にファイルタイプをキーにして辞書を指定することで設定する。
+コンテクストを指定することであるブロックの中だけで有効な折り畳みを作成できる。
+method を "pylike" にすることで python のようなインデントブロックにも対応。
+
+>
+ let g:foldmaker#lazy_during_inserting = 1
+ let g:foldmaker#use_marker = 1
+
+ let g:foldmaker = {}
+ let g:foldmaker.javascript = {
+   \ 'start_pats': [
+   \ {'start': '^\s*\%(async\s\+\)\?function\s\+\w\+(', 'continue': '{'},
+   \ {'start': '\%(const\|let\|var\)\s*\w\+\s*=\s*\%(async\s\+\)\?
+   \\%(function\|\%(\w\+\|(\w\+\%(,\s*\w\+\)*)\)\s*=>\)'},
+   \ ]
+   \ 'ignore_pat': '^\s*//',
+   \ }
+ let g:foldmaker.python = {'method': 'pylike', 'start_pats': ['^\s*def\s']}
+
+
+==============================================================================
+変数						*foldmaker-variables*
+
+g:foldmaker					*g:foldmaker*
+	辞書, 既定: {}
+	キーに foldexpr を設定する filetype、値に設定用辞書を設定する。
+	設定用辞書は以下のキーと値を持てる。
+
+	foldend_type		(文字列, 既定: "samelevel")
+		折り畳みの終了方法を指定する。
+		- "samelevel"
+			開始行と同じかそれより浅いインデントを持つ行まで
+			(例: JavaScript ほか多くの言語) >
+			  function foo(arg) {
+			    ...some processes...
+			  }
+<		- "pylike"
+			開始行と同じかそれより浅いインデントを持つ行の手前(空
+			行は含まない)まで  (例: Python)
+
+	start_pats	(リスト)
+		このリストの要素として文字列を設定する。
+		その文字列のパターンから折り畳みを開始する。この開始パターンと
+		同じインデントを持つ行が折り畳みの終了である(この挙動は後述の
+		"end_type" で変更できる)。
+		このパターンは単一行にしかマッチしない("\n" で次の行にマッチさ
+		せることはできない)
+
+	use_foldmarker	(数値, 未定義)
+		非0 なら 'foldmarker' も折り畳みの開始・終了として併用する。
+		詳しくは|g:foldmarker#use_foldmarker|参照。
+		未定義の場合、|g:foldmaker#use_foldmarker|の値が使われる。
+
+	設定例: >
+	let g:foldmaker = {}
+	let g:foldmaker.javascript = {
+	\ "start_pats": [
+	\ '^\s*\%(async\s\+\)\?function\s\+\w\+(',
+	\ '\%(const\|let\|var\)\s*\w\+\s*=\s*\%(async\s\+\)\?\%(function\|.\{-}=>\)',
+	\ ],
+	\ "use_foldmarker": 1,
+	\ }
+	let g:foldmaker.python = {"start_pats": ['^\s*def\s'],
+	\ "method": 'pylike'}
+<
+
+
+g:foldmaker#use_foldmarker			*g:foldmaker#use_foldmarker*
+	数値, 既定: 0
+	非0 なら 'foldmarker' も折り畳みの開始・終了として併用する。
+	既定の 'foldmarker' と比して以下の違いがある。
+	- "{{{2" "}}}3" といった番号付きマーカーには対応しない。
+	- 開始マーカーが複数あったり、元々折り畳みの開始となる行にさらに開始マ
+	  ーカーを置いても折り畳みは累積しない。
+	  (たとえば "{{{ {{{" とマーカーがあっても折り畳みが2層深くなることな
+	   く、1層だけ深くなる。)
+	- 折り畳みの終了は終了マーカーではなくインデント量で決定される。
+	- 終了マーカーは折り畳み開始行にあるもののみ有効。
+	  その行の折り畳み開始を打ち消すことにのみ使われる。
+
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:fdm=manual:norl:noet:fen:
