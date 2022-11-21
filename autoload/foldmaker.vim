@@ -257,7 +257,7 @@ function! s:first_lv_newfd(lnum, line, prac) abort "{{{
   if ndf.stop!='' && a:line =~# ndf.stop
     return b:_fdmaker.Lv
   end
-  let b:_fdmaker_fd = ndf.stop!='' ? {'Lv': !!ndf.is_visible, 'Dfs': [ndf], 'Idts': [indent(a:lnum)], 'ChlPat': ndf.chlpat, 'IfrPat': ndf.qifrpat[:-5], 'QIfrPats': [ndf.qifrpat], 'IfrDfses': [ndf.ifr_dfs]}
+  let b:_fdmaker_fd = ndf.stop=='' ? {'Lv': !!ndf.is_visible, 'Dfs': [ndf], 'Idts': [indent(a:lnum)], 'ChlPat': ndf.chlpat, 'IfrPat': ndf.qifrpat[:-5], 'QIfrPats': [ndf.qifrpat], 'IfrDfses': [ndf.ifr_dfs]}
     \ : {'Lv': !!ndf.is_visible, 'Dfs': [ndf], 'Idts': [indent(a:lnum)], 'ChlPat': '', 'IfrPat': '', 'QIfrPats': [''], 'IfrDfses': [[]]}
   return ndf.is_visible ? '>1' : 0
 endfunc
