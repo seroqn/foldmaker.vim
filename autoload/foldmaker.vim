@@ -54,16 +54,16 @@ function! s:build_ft_practical(foldings, ship, ft) abort "{{{
   let children = []
   let inferiors = []
   let prefix = a:ft. ':'
-  let dfl_stg = {'start': '', 'nonstop': '', 'stop': '', 'parents': [], 'superiors': [], 'is_visible': 1}
+  let dfl_setg = {'start': '', 'cancel': '', 'nonstop': '', 'stop': '', 'parents': [], 'superiors': [], 'is_visible': 1}
   for [name, fd] in items(a:foldings)
-    let qfd = extend(fd, dfl_stg, 'keep')
+    let qfd = extend(fd, dfl_setg, 'keep')
     if qfd.start==''
       continue
     elseif "\x00" =~# qfd.start
       throw printf('`%s.foldings.%s.start` is invalid pattern: `%s`', a:ft, name, qfd.start)
     end
     let qname = prefix. name
-    let df = {'start': qfd.start, 'nonstop': qfd.nonstop, 'stop': qfd.stop, 'is_visible': qfd.is_visible, 'chlpat': '', 'chl_dfs': [], 'qifrpat': '', 'ifr_dfs': []}
+    let df = {'start': qfd.start, 'cancel': '', 'nonstop': qfd.nonstop, 'stop': qfd.stop, 'is_visible': qfd.is_visible, 'chlpat': '', 'chl_dfs': [], 'qifrpat': '', 'ifr_dfs': []}
     let fd2df_all[qname] = df
     if df.stop!=''
       let stpstart_pats += [df.start]
@@ -234,7 +234,7 @@ function! foldmaker#_expr_(lnum, ft, fts) abort "{{{
     let b:_fdmaker_fd = ndfs==[] ? {'Lv': 0, 'Dfs': [], 'Idts': [], 'ChlPat': '', 'IfrPat': '', 'QIfrPats': [], 'IfrDfses': []}
       \ : {'Lv': b:_fdmaker_fd.Lv - !!b:_fdmaker_fd.Dfs[0].is_visible, 'Dfs': ndfs, 'Idts': b:_fdmaker_fd.Idts[1:], 'ChlPat': ndfs[0].chlpat, 'IfrPat': join(qifrpats, '')[:-5], 'QIfrPats': qifrpats, 'IfrDfses': b:_fdmaker_fd.IfrDfses[1:]}
   endwhile
-  if ndf.stop!='' && line =~# ndf.stop
+  if !(ndf.cancel=='' || line =~# ndf.cancel) || (ndf.stop!='' && line =~# ndf.stop)
     return b:_fdmaker.Lv
   end
   let qifrpats = [ndf.qifrpat] + b:_fdmaker_fd.QIfrPats
@@ -254,7 +254,7 @@ function! s:first_lv_newfd(lnum, line, prac) abort "{{{
   if !found && b:_fdmaker.marker_used && a:line =~# b:_fdmaker.mkrpat
     let ndf = [{'start': b:_fdmaker.mkrpat, 'nonstop': '', 'stop': '', 'is_visible': 1, 'chlpat': '', 'chl_dfs': [], 'qifrpat': '', 'ifr_dfs': []}]
   end
-  if ndf.stop!='' && a:line =~# ndf.stop
+  if !(ndf.cancel=='' || line =~# ndf.cancel) || (ndf.stop!='' && a:line =~# ndf.stop)
     return b:_fdmaker.Lv
   end
   let b:_fdmaker_fd = ndf.stop=='' ? {'Lv': !!ndf.is_visible, 'Dfs': [ndf], 'Idts': [indent(a:lnum)], 'ChlPat': ndf.chlpat, 'IfrPat': ndf.qifrpat[:-5], 'QIfrPats': [ndf.qifrpat], 'IfrDfses': [ndf.ifr_dfs]}
@@ -313,6 +313,9 @@ function! s:climb(lnum, prac) abort "{{{
       break
     end
   endfor
+  if !(df.cancel=='' || line =~# df.cancel)
+    return '='
+  end
   let lines = getline(1, a:lnum-1)
   if line =~ '^\S' && (a:prac.ntpstart_pat!='' || line !~# a:prac.ntpstart_pat) && a:prac.stpstart_pat!='' && match(lines, a:prac.stpstart_pat)==-1 || a:lnum==1
     let b:_fdmaker_fd = {'Lv': !!df.is_visible, 'Dfs': [df], 'Idts': [0], 'ChlPat': df.chlpat, 'IfrPat': df.qifrpat[:-5], 'QIfrPats': [df.qifrpat], 'IfrDfses': [df.ifr_dfs]}
@@ -370,7 +373,10 @@ function! s:calc_climbing_ctxt(lines, indep_dfs, indep_pat) abort "{{{
       endfor
     end
     let lv -= idts!=[] && idt <= idts[0] ? 1 : 0
-    if df.stop!=''
+    if !(df.cancel=='' || line =~# df.cancel)
+      let i = match(a:lines, gpat, i+1)
+      continue
+    elseif df.stop!=''
       let last = match(a:lines, df.stop, i)
       if last==-1
         return [lv, {}]
