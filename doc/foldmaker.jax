@@ -37,9 +37,15 @@ method を "pylike" にすることで python のようなインデントブロ�
 
 >
  let g:foldmaker#use_marker = 1
-
  let g:foldmaker = {}
- let g:foldmaker.python = {'method': 'pylike', 'pat_list': ['^\s*def\s']}
+
+ let g:foldmaker.python = {'fdtype': 'pylike',
+   \ 'foldings': {
+     \ 'function': {'start': '^\s*\%(async\s\+\)\?def\s'},
+     \ 'class': {'start': '^\s*class\s'},
+     \ }
+   \ }
+
  let g:foldmaker.javascript = {
    \ 'fdtype': 'samelevel',
    \ 'foldings': {
@@ -57,20 +63,18 @@ method を "pylike" にすることで python のようなインデントブロ�
      \ },
      \ 'class-method': {
        \ 'parents': ['class'],
-       \ 'start': '^\s*\%(export\%(\s\+default\)\?\s\+\)\?\%(\%(async\|static\)\s\+\)\?\w\+(.\{-})\s\{-}{',
+       \ 'start': '^\s*\%(export\%(\s\+default\)\?\s\+\)\?\%(\%(async\|static\)\s\+\)\?#\?\w\+(.\{-})\s\{-}{',
        \ 'nonstop': '^\s*[){]'
      \ },
      \ 'document': {'start': '^\s*\V/**', 'stop': '\V*/'},
    \ },
  \ }
- let g:foldmaker.typescript = {'inherit': 'javascript'}
 
- let g:foldmaker.python = {'fdtype': 'pylike',
-   \ 'foldings': {
-     \ 'function': {'start': '^\s*\%(async\s\+\)\?def\s'},
-     \ 'class': {'start': '^\s*class\s'},
-     \ }
-   \ }
+ let g:foldmaker.typescript = {'inherit': 'javascript', 'foldings': {
+ \ 'class-method': {'parents': ['class'], 'nonstop': '^\s*[){]',
+ \ 'start': '^\s\{-}\%(export\%(\s\{1,}default\)\?\s\{1,}\)\?\%(\%(public\|private\|protected\)\s\{1,}\)\?\%(readonly\s\{1,}\)\?\%(\%(async\|static\)\s\+\)\?#\?\w\+(.\{-})\s\{-}{' },
+ \ },}
+
 
 
 ==============================================================================
@@ -113,8 +117,7 @@ g:foldmaker					*g:foldmaker*
 			その折り畳みを開始する正規表現文字列。空文字の場合無
 			効。それ以外の何にでもマッチするパターン ('.' や '\S*'
 			など) にするとエラーになる。
-		//- cancel		(文字列)
-			// 構想中、未実装
+		- cancel		(文字列)
 			正規表現文字列。start にマッチした行が同時にこのパター
 			ンにもマッチするなら、折り畳みを生成しない。
 		- nonstop		(文字列)
