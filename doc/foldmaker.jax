@@ -34,9 +34,9 @@ NOTE: バッファを最初に読み込んだ時には 'debug' が設定され�
 |g:foldmaker| にファイルタイプをキーにして辞書を指定することで設定する。
 コンテクストを指定することであるブロックの中だけで有効な折り畳みを作成できる。
 method を "pylike" にすることで python のようなインデントブロックにも対応。
-
 >
  let g:foldmaker#use_marker = 1
+
  let g:foldmaker = {}
 
  let g:foldmaker.python = {'fdtype': 'pylike',
@@ -46,35 +46,31 @@ method を "pylike" にすることで python のようなインデントブロ�
      \ }
    \ }
 
- let g:foldmaker.javascript = {
-   \ 'fdtype': 'samelevel',
-   \ 'foldings': {
-     \ 'function': {
-       \ 'start': '^\s*\%(export\%(\s\+default\)\?\s\+\)\?\%(async\s\+\)\?function\s\+[[:alnum:]$_]\+\s*(',
-       \ 'nonstop': '^\s*[){]'
-     \ },
-     \ 'const-function': {
-       \ 'start': '\%(export\%(\s\+default\)\?\s\+\)\?\%(const\|let\|var\)\s\{-}[[:alnum:]$_]\+\s\{-}=\s\{-}\%(async\s\+\)\?\%(function\|\%(\w\+\|(\w*\%(,\s\{-}\%(\.\.\.\)\?\w\+\)*)\)\s\{-}=>\)\s\{-}{$',
-       \ 'nonstop': '^\s*[){]'
-     \ },
-     \ 'class': {
-       \ 'start': '^\s*\%(export\%(\s\+default\)\?\s\+\)\?class',
-       \ 'is_visible': 0
-     \ },
-     \ 'class-method': {
-       \ 'parents': ['class'],
-       \ 'start': '^\s*\%(export\%(\s\+default\)\?\s\+\)\?\%(\%(async\|static\)\s\+\)\?#\?\w\+(.\{-})\s\{-}{',
-       \ 'nonstop': '^\s*[){]'
-     \ },
-     \ 'document': {'start': '^\s*\V/**', 'stop': '\V*/'},
-   \ },
- \ }
+ let g:foldmaker.sh = {'foldings': {
+   \ 'function': {'start': '^\s*\%(function\s\+\)\?\%([_[:alpha:]]\%(\w\|-\|:\)*\)\?()\s*{\s*$'},
+   \ },}
+ let g:foldmaker.bash = {'inherit': 'sh'}
+ let g:foldmaker.zsh = {'inherit': 'sh'}
 
- let g:foldmaker.typescript = {'inherit': 'javascript', 'foldings': {
- \ 'class-method': {'parents': ['class'], 'nonstop': '^\s*[){]',
- \ 'start': '^\s\{-}\%(export\%(\s\{1,}default\)\?\s\{1,}\)\?\%(\%(public\|private\|protected\)\s\{1,}\)\?\%(readonly\s\{1,}\)\?\%(\%(async\|static\)\s\+\)\?#\?\w\+(.\{-})\s\{-}{' },
+ let g:foldmaker.go = {'foldings': {
+   \ 'function': {'start': '^\s*func[^(]'},
+   \ 'type': {'start': '^\s*type\>'},
+   \ },}
+
+ let g:foldmaker.javascript = {'foldings': {
+   \ 'function': {'start': '^\s*\%(export\%(\s\+default\)\?\s\+\)\?\%(async\s\+\)\?function\s\+[[:alnum:]$_]\+\s*(', 'nonstop': '^\s*[){]'},
+   \ 'const-function': {'start': '\%(export\%(\s\+default\)\?\s\+\)\?\%(const\|let\|var\)\s\{-}[[:alnum:]$_]\+\s\{-}=\s\{-}\%(async\s\+\)\?\%(function\|\%(\w\+\|(\w*\%(,\s\{-}\%(\.\.\.\)\?\w\+\)*)\)\s\{-}=>\)\s\{-}{$', 'nonstop': '^\s*[){]'},
+   \ 'class': {'start': '^\s*\%(export\%(\s\+default\)\?\s\+\)\?class', 'is_visible': 0},
+   \ 'class-method': {'parents': ['class'], 'start': '^\s\{-}\%(export\%(\s\{1,}default\)\?\s\{1,}\)\?\%(\%(async\|static\)\s\+\)\?#\?\w\+(.\{-})\s\{-}{', 'nonstop': '^\s*[){]'},
+   \ 'describe': {'start': '^\s\{-}describe('},
+   \ 'document': {'start': '^\s*\V/**', 'stop': '\V*/'},
  \ },}
 
+ let g:foldmaker.typescript = {'inherit': 'javascript', 'foldings': {
+   \ 'function': {'start': '^\s*\%(export\%(\s\+default\)\?\s\+\)\?\%(async\s\+\)\?function\s\+[[:alnum:]$_]\+\s*\%(<.\{-}>\)\?(', 'nonstop': '^\s*[){]'},
+   \ 'const-function': {'start': '\%(export\%(\s\+default\)\?\s\+\)\?\%(const\|let\|var\)\s\{-}[[:alnum:]$_]\+\s\{-}=\s\{-}\%(async\s\+\)\?\%(function\|\%(\w\+\|(\w*\%(,\s\{-}\%(\.\.\.\)\?\w\+\)*)\)\%(:\s\{-}\u\w\{-}\%(<.\{-}>\)\?\)\?\s\{-}=>\)\s\{-}{$', 'nonstop': '^\s*[){]'},
+   \ 'class-method': {'parents': ['class'], 'start': '^\s\{-}\%(export\%(\s\{1,}default\)\?\s\{1,}\)\?\%(\%(public\|private\|protected\)\s\{1,}\)\?\%(readonly\s\{1,}\)\?\%(\%(async\|static\)\s\+\)\?#\?\w\+(.\{-})\s\{-}{', 'nonstop': '^\s*[){]'},
+   \ },}
 
 
 ==============================================================================
