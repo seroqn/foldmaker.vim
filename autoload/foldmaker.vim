@@ -56,11 +56,12 @@ function! s:build_ft_practical(foldings, ship, ft) abort "{{{
   let prefix = a:ft. ':'
   let dfl_setg = {'start': '', 'cancel': '', 'nonstop': '', 'stop': '', 'parents': [], 'superiors': [], 'is_visible': 1}
   for [name, fd] in items(a:foldings)
+    let s:procg_fd = name
     let qfd = extend(fd, dfl_setg, 'keep')
     if qfd.start==''
       continue
     elseif "\x00" =~# qfd.start
-      throw printf('`%s.foldings.%s.start` is invalid pattern: `%s`', a:ft, name, qfd.start)
+      throw printf('`foldings.%s.start` is invalid pattern: `%s`', name, qfd.start)
     end
     let qname = prefix. name
     let df = {'start': qfd.start, 'cancel': '', 'nonstop': qfd.nonstop, 'stop': qfd.stop, 'is_visible': qfd.is_visible, 'chlpat': '', 'chl_dfs': [], 'qifrpat': '', 'ifr_dfs': []}
@@ -79,6 +80,7 @@ function! s:build_ft_practical(foldings, ship, ft) abort "{{{
       let indep_dfs += [df]
     end
   endfor
+  let s:procg_fd = ''
   let pdfs = []
   for [chlname, prefix, parents] in children
     for p in parents
@@ -176,7 +178,14 @@ function! foldmaker#_init_(fts) abort "{{{
     if foldings=={}
       continue
     end
-    let s:ft2ftprc[ft] = s:build_ft_practical(foldings, ship, ft)
+    let s:procg_fd = ''
+    try
+      let s:ft2ftprc[ft] = s:build_ft_practical(foldings, ship, ft)
+    catch
+      echoerr printf('%s: %s ..at filetype "%s" %s', v:throwpoint, v:exception, ft, s:procg_fd=='' ? '' : 'folding["'. s:procg_fd. '"]')
+    finally
+      unlet! s:procg_fd
+    endtry
     let s:save_raw[ft] = g:foldmaker[ft]
     let is_succeeded = 1
   endfor
