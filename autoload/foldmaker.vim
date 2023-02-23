@@ -44,6 +44,37 @@ function! s:get_inheritee(settings, ft, ihr_log, ship) abort "{{{ -> Qship: {use
   return foldings=={} ? qfoldings : qfoldings=={} ? foldings : extend(deepcopy(qfoldings), foldings)
 endfunc
 "}}}
+function! s:multift_into_ft_practical(fts) abort "{{{
+  let fts = []
+  for ft in a:fts
+    if has_key(s:ft2ftprc, ft)
+      let fts += [ft]
+    end
+  endfor
+  if len(fts)==1
+    return s:ft2ftprc[fts[0]]
+  end
+  let pracs = map(fts, 's:ft2ftprc[(v:val)]')
+  let use_marker = ''
+  let indep_dfs = []
+  let indep_pats = []
+  let ntpstart_pats = []
+  let stpstart_pats = []
+  let fdtype = pracs[0].fdtype
+  for prac in pracs
+    if prac.fdtype !=# fdtype
+      echoerr printf('foldmaker: 複合filetype の fdtype が異なるため %s の定義を使います', prac._ft)
+      return pracs[0]
+    end
+    let use_marker = prac.use_marker is '' ? use_marker : use_marker is '' || use_marker ? prac.use_marker : 0
+    let indep_dfs += prac.indep_dfs
+    let indep_pats += [prac.indep_pat]
+    let ntpstart_pats += [prac.ntpstart_pat]
+    let stpstart_pats += [prac.stpstart_pat]
+  endfor
+  return {'fdtype': fdtype, 'use_marker': use_marker, 'indep_dfs': indep_dfs, 'indep_pat': join(indep_pats, '\|'), 'ntpstart_pat': join(ntpstart_pats, '\|') 'stpstart_pat': join(stpstart_pats, '\|')}
+endfunc
+"}}}
 function! s:build_ft_practical(foldings, ship, ft) abort "{{{
   let indep_pats = []
   let indep_dfs = []
@@ -111,37 +142,9 @@ function! s:build_ft_practical(foldings, ship, ft) abort "{{{
     \ 'indep_dfs': indep_dfs, 'indep_pat': '\%('. join(indep_pats, '\m\)\|\%('). '\m\)', 'ntpstart_pat': '\%('. join(ntpstart_pats, '\m\)\|\%('). '\m\)', 'stpstart_pat': '\%('. join(stpstart_pats, '\m\)\|\%('). '\m\)'}
 endfunc
 "}}}
-function! s:multift_into_ft_practical(fts) abort "{{{
-  let fts = []
-  for ft in a:fts
-    if has_key(s:ft2ftprc, ft)
-      let fts += [ft]
-    end
-  endfor
-  if len(fts)==1
-    return s:ft2ftprc[fts[0]]
-  end
-  let pracs = map(fts, 's:ft2ftprc[(v:val)]')
-  let use_marker = ''
-  let indep_dfs = []
-  let indep_pats = []
-  let ntpstart_pats = []
-  let stpstart_pats = []
-  let fdtype = pracs[0].fdtype
-  for prac in pracs
-    if prac.fdtype !=# fdtype
-      echoerr printf('foldmaker: 複合filetype の fdtype が異なるため %s の定義を使います', prac._ft)
-      return pracs[0]
-    end
-    let use_marker = prac.use_marker is '' ? use_marker : use_marker is '' || use_marker ? prac.use_marker : 0
-    let indep_dfs += prac.indep_dfs
-    let indep_pats += [prac.indep_pat]
-    let ntpstart_pats += [prac.ntpstart_pat]
-    let stpstart_pats += [prac.stpstart_pat]
-  endfor
-  return {'fdtype': fdtype, 'use_marker': use_marker, 'indep_dfs': indep_dfs, 'indep_pat': join(indep_pats, '\|'), 'ntpstart_pat': join(ntpstart_pats, '\|') 'stpstart_pat': join(stpstart_pats, '\|')}
-endfunc
-"}}}
+" Df{'start', 'cancel', 'nonstop', 'stop': String; 'is_visible': Bool; 'chlpat': String; 'chl_dfs': Df[]; 'qifrpat': String; 'ifr_dfs': Df[]}
+" Prac{'_ft': String; 'fdtype': 'pylike' | 'samelevel'; 'use_marker': Bool, 'indep_dfs': Df[], 'indep_pat', 'ntpstart_pat', 'stpstart_pat': String}
+" NOTE: qifrpat には末尾に '\m\|' が付いているので使用時には除去する必要がある。
 
 function! s:get_ifr_df(line, ifr_dfses) abort "{{{
   for dfs in a:ifr_dfses
@@ -309,7 +312,7 @@ function! s:climb(lnum, prac) abort "{{{
   let b:_fdmaker.PreLnum = a:lnum
   let b:_fdmaker_fd = {'Dfs': [], 'Lv': 0, 'Idts': [], 'ChlPat': '', 'IfrPat': '', 'QIfrPats': [], 'IfrDfses': []}
   if !b:_fdmaker.USE_MARKER && b:_fdmaker.marker_used != g:foldmaker#use_marker
-    let [b:_fdmaker, b:_fdmaker_fd] = s:init_bvar(a:prac, a:lnum)
+    let [b:_fdmaker, _] = s:init_bvar(a:prac, a:lnum)
   end
   let line = getline(a:lnum)
   if line !~# b:_fdmaker.INDEP_PAT
@@ -344,7 +347,8 @@ function! s:climb(lnum, prac) abort "{{{
   return '>'. lv
 endfunc
 "}}}
-function! s:calc_climbing_ctxt(lines, indep_dfs, indep_pat) abort "{{{
+" 現在行が INDEP_PAT にマッチするのを前提として、先頭から a:lines をなめて現在行の lv と ctxt を返す
+function! s:calc_climbing_ctxt(lines, indep_dfs, indep_pat) abort "{{{ -> lv: Number, ctxt: ({'dfs': Df[]; 'idts': Number; 'qifrpats': String[]; 'qifrpat': String; 'ifr_dfses': Df[][]} | {})
   let lv = 0
   let dfs = []
   let idts = []
@@ -367,7 +371,7 @@ function! s:calc_climbing_ctxt(lines, indep_dfs, indep_pat) abort "{{{
           let lv -= !!lv
           let [dfs, idts, chl_dfs, chlpats, qifrpats, ifr_dfses] = [dfs[1:], idts[1:], chl_dfs[1:], chlpats[1:], qifrpats[1:], ifr_dfses[1:]]
           let [qifrpat, chlpat] = [join(qifrpats, ''), chlpats[0]]
-          let gpat = chlpat. qifrpat. a:indep_pat. '\m\|\%<'. (idt+2). 'v\S'
+          let gpat = dfs==[] ? a:indep_pat : chlpat. qifrpat. a:indep_pat. '\m\|\%<'. (idt+1). 'v\S'
         endwhile
       endif
       let i = match(a:lines, gpat, i+1)
@@ -402,7 +406,7 @@ function! s:calc_climbing_ctxt(lines, indep_dfs, indep_pat) abort "{{{
     let qifrpats = [df.qifrpat] + qifrpats
     let chlpat = df.chlpat
     let qifrpat = (df.qifrpat. qifrpat)
-    let gpat = (chlpat=='' ? '' : chlpat. '\m\|'). qifrpat. a:indep_pat. '\m\|\%<'. (idt+2). 'v\S'
+    let gpat = (chlpat=='' ? '' : chlpat. '\m\|'). qifrpat. a:indep_pat. '\m\|\%<'. (idt+1). 'v\S'
     let i = match(a:lines, gpat, i+1)
   endwhile
   return [lv, {'dfs': dfs, 'idts': idts, 'qifrpats': qifrpats, 'qifrpat': qifrpat, 'ifr_dfses': ifr_dfses}]
