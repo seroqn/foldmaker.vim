@@ -329,7 +329,7 @@ function! s:climb(lnum, prac) abort "{{{
     return '='
   end
   let lines = getline(1, a:lnum-1)
-  if line =~ '^\S' && (a:prac.ntpstart_pat!='' || line !~# a:prac.ntpstart_pat) && a:prac.stpstart_pat!='' && match(lines, a:prac.stpstart_pat)==-1 || a:lnum==1
+  if line =~ '^\S' && (a:prac.ntpstart_pat!='' || line !~# a:prac.ntpstart_pat) && (a:prac.stpstart_pat=='' || match(lines, a:prac.stpstart_pat)==-1 || a:lnum==1)
     let b:_fdmaker_fd = {'Lv': !!df.is_visible, 'Dfs': [df], 'Idts': [0], 'ChlPat': df.chlpat, 'IfrPat': df.qifrpat[:-5], 'QIfrPats': [df.qifrpat], 'IfrDfses': [df.ifr_dfs]}
     return df.is_visible ? '>1' : 0
   elseif !df.is_visible
