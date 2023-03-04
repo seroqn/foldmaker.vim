@@ -44,37 +44,9 @@ function! s:get_inheritee(settings, ft, ihr_log, ship) abort "{{{ -> Qship: {use
   return foldings=={} ? qfoldings : qfoldings=={} ? foldings : extend(deepcopy(qfoldings), foldings)
 endfunc
 "}}}
-function! s:multift_into_ft_practical(fts) abort "{{{
-  let fts = []
-  for ft in a:fts
-    if has_key(s:ft2ftprc, ft)
-      let fts += [ft]
-    end
-  endfor
-  if len(fts)==1
-    return s:ft2ftprc[fts[0]]
-  end
-  let pracs = map(fts, 's:ft2ftprc[(v:val)]')
-  let use_marker = ''
-  let indep_dfs = []
-  let indep_pats = []
-  let ntpstart_pats = []
-  let stpstart_pats = []
-  let fdtype = pracs[0].fdtype
-  for prac in pracs
-    if prac.fdtype !=# fdtype
-      echoerr printf('foldmaker: 複合filetype の fdtype が異なるため %s の定義を使います', prac._ft)
-      return pracs[0]
-    end
-    let use_marker = prac.use_marker is '' ? use_marker : use_marker is '' || use_marker ? prac.use_marker : 0
-    let indep_dfs += prac.indep_dfs
-    let indep_pats += [prac.indep_pat]
-    let ntpstart_pats += [prac.ntpstart_pat]
-    let stpstart_pats += [prac.stpstart_pat]
-  endfor
-  return {'fdtype': fdtype, 'use_marker': use_marker, 'indep_dfs': indep_dfs, 'indep_pat': join(indep_pats, '\|'), 'ntpstart_pat': join(ntpstart_pats, '\|') 'stpstart_pat': join(stpstart_pats, '\|')}
-endfunc
-"}}}
+" Df{'start', 'cancel', 'nonstop', 'stop': string; 'is_visible': bool; 'chlpat': string; 'chl_dfs': Df[]; 'qifrpat': string; 'ifr_dfs': Df[]}
+" Prac{'_ft': string; 'fdtype': 'pylike' | 'samelevel'; 'use_marker': bool, 'indep_dfs': Df[], 'indep_pat', 'ntpstart_pat', 'stpstart_pat': string}
+" NOTE: qifrpat には末尾に '\m\|' が付いているので使用時には除去する必要がある。
 function! s:build_ft_practical(foldings, ship, ft) abort "{{{
   let indep_pats = []
   let indep_dfs = []
@@ -142,9 +114,37 @@ function! s:build_ft_practical(foldings, ship, ft) abort "{{{
     \ 'indep_dfs': indep_dfs, 'indep_pat': '\%('. join(indep_pats, '\m\)\|\%('). '\m\)', 'ntpstart_pat': '\%('. join(ntpstart_pats, '\m\)\|\%('). '\m\)', 'stpstart_pat': '\%('. join(stpstart_pats, '\m\)\|\%('). '\m\)'}
 endfunc
 "}}}
-" Df{'start', 'cancel', 'nonstop', 'stop': String; 'is_visible': Bool; 'chlpat': String; 'chl_dfs': Df[]; 'qifrpat': String; 'ifr_dfs': Df[]}
-" Prac{'_ft': String; 'fdtype': 'pylike' | 'samelevel'; 'use_marker': Bool, 'indep_dfs': Df[], 'indep_pat', 'ntpstart_pat', 'stpstart_pat': String}
-" NOTE: qifrpat には末尾に '\m\|' が付いているので使用時には除去する必要がある。
+function! s:multift_into_ft_practical(fts) abort "{{{
+  let fts = []
+  for ft in a:fts
+    if has_key(s:ft2ftprc, ft)
+      let fts += [ft]
+    end
+  endfor
+  if len(fts)==1
+    return s:ft2ftprc[fts[0]]
+  end
+  let pracs = map(fts, 's:ft2ftprc[(v:val)]')
+  let use_marker = ''
+  let indep_dfs = []
+  let indep_pats = []
+  let ntpstart_pats = []
+  let stpstart_pats = []
+  let fdtype = pracs[0].fdtype
+  for prac in pracs
+    if prac.fdtype !=# fdtype
+      echoerr printf('foldmaker: 複合filetype の fdtype が異なるため %s の定義を使います', prac._ft)
+      return pracs[0]
+    end
+    let use_marker = prac.use_marker is '' ? use_marker : use_marker is '' || use_marker ? prac.use_marker : 0
+    let indep_dfs += prac.indep_dfs
+    let indep_pats += [prac.indep_pat]
+    let ntpstart_pats += [prac.ntpstart_pat]
+    let stpstart_pats += [prac.stpstart_pat]
+  endfor
+  return {'fdtype': fdtype, 'use_marker': use_marker, 'indep_dfs': indep_dfs, 'indep_pat': join(indep_pats, '\|'), 'ntpstart_pat': join(ntpstart_pats, '\|') 'stpstart_pat': join(stpstart_pats, '\|')}
+endfunc
+"}}}
 
 function! s:get_ifr_df(line, ifr_dfses) abort "{{{
   for dfs in a:ifr_dfses
@@ -348,7 +348,7 @@ function! s:climb(lnum, prac) abort "{{{
 endfunc
 "}}}
 " 現在行が INDEP_PAT にマッチするのを前提として、先頭から a:lines をなめて現在行の lv と ctxt を返す
-function! s:calc_climbing_ctxt(lines, indep_dfs, indep_pat) abort "{{{ -> lv: Number, ctxt: ({'dfs': Df[]; 'idts': Number; 'qifrpats': String[]; 'qifrpat': String; 'ifr_dfses': Df[][]} | {})
+function! s:calc_climbing_ctxt(lines, indep_dfs, indep_pat) abort "{{{ -> lv: int, ctxt: ({'dfs': Df[]; 'idts': int; 'qifrpats': string[]; 'qifrpat': string; 'ifr_dfses': Df[][]} | {})
   let lv = 0
   let dfs = []
   let idts = []
